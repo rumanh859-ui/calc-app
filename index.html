@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#181c23" />
+  <title>Scientific Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #090b0e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      padding: 8px;
+    }
+
+    .calc-body {
+      width: 100%;
+      max-width: 410px;
+      background: #181c23;
+      border: 2px solid #2b313c;
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    /* LCD Screen */
+    .bezel {
+      background: #0e1014;
+      padding: 4px;
+      border-radius: 10px;
+      border: 2px solid #252a34;
+      margin-bottom: 10px;
+    }
+
+    .lcd {
+      background: #b6c5a8;
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: #0d140a;
+      font-family: "Consolas", "Courier New", monospace;
+    }
+
+    .lcd-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: bold;
+      color: #192315;
+      min-height: 14px;
+    }
+
+    .lcd-expr {
+      font-size: 16px;
+      font-weight: bold;
+      min-height: 22px;
+      white-space: nowrap;
+      overflow-x: auto;
+      text-align: left;
+      padding: 2px 0;
+    }
+
+    .lcd-res {
+      font-size: 26px;
+      font-weight: bold;
+      text-align: right;
+      min-height: 32px;
+      white-space: nowrap;
+      overflow-x: auto;
+      color: #0b1108;
+    }
+
+    /* Top Control Row */
+    .ctrl-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.6fr 1fr 1fr;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .ctrl-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .ctrl-lbl {
+      font-size: 9px;
+      font-weight: 800;
+      margin-bottom: 2px;
+      letter-spacing: 0.3px;
+    }
+
+    .lbl-shift { color: #f59e0b; }
+    .lbl-alpha { color: #ef4444; }
+    .lbl-white { color: #e5e7eb; }
+
+    .ctrl-btn {
+      width: 100%;
+      height: 22px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #9ca3af;
+      cursor: pointer;
+    }
+
+    .ctrl-btn:active {
+      transform: translateY(1px);
+      background: #d1d5db;
+    }
+
+    .replay-pad {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #9ca3af;
+      border: 2px solid #4b5563;
+      border-radius: 999px;
+      height: 44px;
+      padding: 0 8px;
+      color: #1f2937;
+      font-weight: bold;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .replay-pad:active {
+      background: #cbd5e1;
+    }
+
+    /* Scientific Grid */
+    .sci-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .key-cell {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sub-hints {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      font-weight: 700;
+      min-height: 11px;
+      line-height: 11px;
+      padding: 0 2px;
+    }
+
+    .s-hint { color: #f59e0b; }
+    .a-hint { color: #ef4444; }
+    .b-hint { color: #60a5fa; }
+    .y-hint { color: #fbbf24; }
+
+    .sci-btn {
+      background: #20242c;
+      color: #f3f4f6;
+      border: 1px solid #3c424d;
+      border-radius: 8px;
+      height: 28px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .sci-btn:hover { background: #323844; }
+    .sci-btn:active { transform: translateY(1px); }
+
+    /* Number & Operation Pad */
+    .num-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .num-btn {
+      background: #7c838f;
+      color: #ffffff;
+      border: 1px solid #9ba2ae;
+      border-radius: 14px;
+      height: 42px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .num-btn:hover { background: #969da8; }
+    .num-btn:active { transform: translateY(1px); }
+
+    .pink-btn {
+      background: #e11d6b;
+      border-color: #f472b6;
+    }
+
+    .pink-btn:hover { background: #f43f8e; }
+  </style>
+</head>
+<body>
+  <div class="calc-body">
+    <!-- LCD Display -->
+    <div class="bezel">
+      <div class="lcd">
+        <div class="lcd-top">
+          <span id="statusText">DEG</span>
+          <span>▲</span>
+        </div>
+        <div class="lcd-expr" id="exprScreen"></div>
+        <div class="lcd-res" id="resScreen">0</div>
+      </div>
+    </div>
+
+    <!-- SHIFT / ALPHA / REPLAY / MODE / ON -->
+    <div class="ctrl-row">
+      <div class="ctrl-item">
+        <span class="ctrl-lbl lbl-shift">SHIFT</span>
+        <button class="ctrl-btn" onclick="toggleShift()" aria-label="SHIFT"></button>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-lbl lbl-alpha">ALPHA</span>
+        <button class="ctrl-btn" onclick="toggleAlpha()" aria-label="ALPHA"></button>
+      </div>
+      <div class="replay-pad" onclick="handleReplay(event)">
+        <span>◄</span>
+        <span>REPLAY</span>
+        <span>►</span>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-lbl lbl-white">MODE CLR</span>
+        <button class="ctrl-btn" onclick="cycleMode()" aria-label="MODE"></button>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-lbl lbl-white">ON</span>
+        <button class="ctrl-btn" onclick="resetCalc()" aria-label="ON"></button>
+      </div>
+    </div>
+
+    <!-- Scientific Keys -->
+    <div class="sci-grid" id="sciGrid"></div>
+
+    <!-- Number & Action Keys -->
+    <div class="num-grid" id="numGrid"></div>
+  </div>
+
+  <script>
+    let expression = "";
+    let ansValue = 0;
+    let memoryValue = 0;
+    let justEvaluated = false;
+    let shiftActive = false;
+    let alphaActive = false;
+    const modes = ["DEG", "RAD", "GRAD"];
+    let modeIdx = 0;
+
+    // [shiftLabel, alphaLabel, mainLabel, tokenToInsert, colSpan]
+    const sciLayout = [
+      ["x!", "", "x⁻¹", "⁻¹", 1],
+      ["nPr", "", "nCr", "C", 1],
+      ["", "", "", "", 2],
+      ["Rec(", ":", "Pol(", "Pol(", 1],
+      ["³√", "", "x³", "³", 1],
+
+      ["d/c", "", "a b/c", "/", 1],
+      ["", "", "√", "√(", 1],
+      ["", "", "x²", "²", 1],
+      ["ˣ√", "", "^", "^", 1],
+      ["10ˣ", "", "log", "log(", 1],
+      ["eˣ", "e", "ln", "ln(", 1],
+
+      ["", "A", "(-)", "-", 1],
+      ["←", "B", "°'\"", "°", 1],
+      ["", "C", "hyp", "hyp(", 1],
+      ["sin⁻¹", "D", "sin", "sin(", 1],
+      ["cos⁻¹", "E", "cos", "cos(", 1],
+      ["tan⁻¹", "F", "tan", "tan(", 1],
+
+      ["STO", "", "RCL", "RCL", 1],
+      ["", "", "ENG", "ENG", 1],
+      ["", "", "(", "(", 1],
+      ["", "X", ")", ")", 1],
+      ["", "Y", ",", ",", 1],
+      ["M-", "M", "M+", "M+", 1]
+    ];
+
+    // [topHint, hintColorType, mainLabel, isPink]
+    const numLayout = [
+      ["", "b", "7", false],
+      ["", "b", "8", false],
+      ["", "b", "9", false],
+      ["INS", "y", "DEL", true],
+      ["OFF", "y", "AC", true],
+
+      ["", "b", "4", false],
+      ["", "b", "5", false],
+      ["", "b", "6", false],
+      ["", "b", "×", false],
+      ["", "b", "÷", false],
+
+      ["S-SUM", "b", "1", false],
+      ["S-VAR", "b", "2", false],
+      ["", "b", "3", false],
+      ["", "b", "+", false],
+      ["", "b", "-", false],
+
+      ["Rnd", "b", "0", false],
+      ["Ran#", "b", ".", false],
+      ["π", "y", "EXP", false],
+      ["DRG►", "y", "Ans", false],
+      ["%", "y", "=", false]
+    ];
+
+    function buildUI() {
+      const sciContainer = document.getElementById("sciGrid");
+      sciLayout.forEach(([sLbl, aLbl, mLbl, tok, span]) => {
+        if (!mLbl) {
+          const spacer = document.createElement("div");
+          spacer.style.gridColumn = `span ${span}`;
+          sciContainer.appendChild(spacer);
+          return;
+        }
+        const cell = document.createElement("div");
+        cell.className = "key-cell";
+        cell.style.gridColumn = `span ${span}`;
+        cell.innerHTML = `
+          <div class="sub-hints">
+            <span class="s-hint">${sLbl}</span>
+            <span class="a-hint">${aLbl}</span>
+          </div>
+          <button class="sci-btn">${mLbl}</button>
+        `;
+        cell.querySelector("button").addEventListener("click", () => onSciPress(mLbl, sLbl, aLbl, tok));
+        sciContainer.appendChild(cell);
+      });
+
+      const numContainer = document.getElementById("numGrid");
+      numLayout.forEach(([hint, hType, lbl, isPink]) => {
+        const cell = document.createElement("div");
+        cell.className = "key-cell";
+        const hClass = hType === "y" ? "y-hint" : "b-hint";
+        cell.innerHTML = `
+          <div class="sub-hints">
+            <span class="${hClass}">${hint}</span>
+          </div>
+          <button class="num-btn ${isPink ? "pink-btn" : ""}">${lbl}</button>
+        `;
+        cell.querySelector("button").addEventListener("click", () => onNumPress(lbl, hint));
+        numContainer.appendChild(cell);
+      });
+    }
+
+    function updateStatus() {
+      const parts = [modes[modeIdx]];
+      if (shiftActive) parts.push("SHIFT");
+      if (alphaActive) parts.push("ALPHA");
+      if (memoryValue !== 0) parts.push("M");
+      document.getElementById("statusText").textContent = parts.join("  ");
+    }
+
+    function toggleShift() {
+      shiftActive = !shiftActive;
+      if (shiftActive) alphaActive = false;
+      updateStatus();
+    }
+
+    function toggleAlpha() {
+      alphaActive = !alphaActive;
+      if (alphaActive) shiftActive = false;
+      updateStatus();
+    }
+
+    function cycleMode() {
+      modeIdx = (modeIdx + 1) % modes.length;
+      updateStatus();
+    }
+
+    function resetCalc() {
+      expression = "";
+      justEvaluated = false;
+      shiftActive = false;
+      alphaActive = false;
+      document.getElementById("exprScreen").textContent = "";
+      document.getElementById("resScreen").textContent = "0";
+      updateStatus();
+    }
+
+    function popModifiers() {
+      const s = shiftActive;
+      const a = alphaActive;
+      shiftActive = false;
+      alphaActive = false;
+      updateStatus();
+      return { s, a };
+    }
+
+    function appendExpr(txt) {
+      const ops = ["+", "-", "×", "÷", "^", "²", "³", "⁻¹", "%"];
+      if (justEvaluated && !ops.includes(txt)) {
+        expression = "";
+      }
+      justEvaluated = false;
+      expression += txt;
+      document.getElementById("exprScreen").textContent = expression;
+    }
+
+    function backspace() {
+      if (justEvaluated) {
+        resetCalc();
+        return;
+      }
+      const multiTokens = ["sin⁻¹(", "cos⁻¹(", "tan⁻¹(", "sin(", "cos(", "tan(", "log(", "ln(", "√(", "³√("];
+      for (const t of multiTokens) {
+        if (expression.endsWith(t)) {
+          expression = expression.slice(0, -t.length);
+          document.getElementById("exprScreen").textContent = expression;
+          return;
+        }
+      }
+      expression = expression.slice(0, -1);
+      document.getElementById("exprScreen").textContent = expression;
+    }
+
+    function handleReplay(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < rect.width / 2) {
+        backspace();
+      } else {
+        appendExpr(" ");
+      }
+    }
+
+    function onSciPress(mLbl, sLbl, aLbl, tok) {
+      const { s, a } = popModifiers();
+
+      if (a) {
+        if (aLbl === ":") appendExpr(" + ");
+        else if (aLbl) appendExpr(aLbl);
+        return;
+      }
+
+      if (s && sLbl) {
+        if (sLbl === "STO") {
+          const val = parseFloat(document.getElementById("resScreen").textContent);
+          if (!Number.isNaN(val)) {
+            memoryValue = val;
+            updateStatus();
+          }
+          return;
+        }
+        const sMap = {
+          "x!": "!",
+          "nPr": "P",
+          "Rec(": "Rec(",
+          "³√": "³√(",
+          "d/c": "÷",
+          "10ˣ": "10^(",
+          "eˣ": "e^(",
+          "sin⁻¹": "sin⁻¹(",
+          "cos⁻¹": "cos⁻¹(",
+          "tan⁻¹": "tan⁻¹(",
+          "M-": "M-"
+        };
+        if (sMap[sLbl]) appendExpr(sMap[sLbl]);
+        return;
+      }
+
+      if (mLbl === "RCL") {
+        appendExpr(formatNumber(memoryValue));
+      } else if (mLbl === "M+") {
+        const val = parseFloat(document.getElementById("resScreen").textContent);
+        if (!Number.isNaN(val)) {
+          memoryValue += val;
+          updateStatus();
+        }
+      } else if (mLbl === "ENG") {
+        const val = parseFloat(document.getElementById("resScreen").textContent);
+        if (!Number.isNaN(val)) {
+          document.getElementById("resScreen").textContent = val.toExponential(4);
+        }
+      } else if (tok) {
+        appendExpr(tok);
+      }
+    }
+
+    function onNumPress(lbl, hint) {
+      const { s } = popModifiers();
+
+      if (s && hint === "π") {
+        appendExpr("π");
+        return;
+      }
+      if (s && hint === "Ran#") {
+        appendExpr(String(Math.round(Math.random() * 1000000) / 1000000));
+        return;
+      }
+      if (s && hint === "Rnd") {
+        const val = parseFloat(document.getElementById("resScreen").textContent);
+        if (!Number.isNaN(val)) {
+          const rounded = Math.round(val * 100) / 100;
+          expression = String(rounded);
+          document.getElementById("exprScreen").textContent = expression;
+          document.getElementById("resScreen").textContent = String(rounded);
+        }
+        return;
+      }
+
+      if (lbl === "AC") resetCalc();
+      else if (lbl === "DEL") backspace();
+      else if (lbl === "=") evaluateExpr();
+      else if (lbl === "Ans") appendExpr("Ans");
+      else if (lbl === "EXP") appendExpr("×10^");
+      else appendExpr(lbl);
+    }
+
+    function toRad(deg) {
+      const mode = modes[modeIdx];
+      if (mode === "DEG") return (deg * Math.PI) / 180;
+      if (mode === "GRAD") return (deg * Math.PI) / 200;
+      return deg;
+    }
+
+    function fromRad(rad) {
+      const mode = modes[modeIdx];
+      if (mode === "DEG") return (rad * 180) / Math.PI;
+      if (mode === "GRAD") return (rad * 200) / Math.PI;
+      return rad;
+    }
+
+    function factorial(n) {
+      const num = Math.floor(n);
+      if (num < 0 || num > 170) throw new Error("Overflow");
+      let res = 1;
+      for (let i = 2; i <= num; i++) res *= i;
+      return res;
+    }
+
+    function nCr(n, r) {
+      return factorial(n) / (factorial(r) * factorial(n - r));
+    }
+
+    function nPr(n, r) {
+      return factorial(n) / factorial(n - r);
+    }
+
+    function formatNumber(val) {
+      if (!Number.isFinite(val)) return "Math ERROR";
+      const rounded = Math.round(val * 1e10) / 1e10;
+      if (Number.isInteger(rounded)) return String(rounded);
+      return String(rounded);
+    }
+
+    function evaluateExpr() {
+      if (!expression.trim()) return;
+      try {
+        let code = expression.trim();
+        const openDiff = (code.match(/\(/g) || []).length - (code.match(/\)/g) || []).length;
+        if (openDiff > 0) code += ")".repeat(openDiff);
+
+        code = code
+          .replace(/×/g, "*")
+          .replace(/÷/g, "/")
+          .replace(/\^/g, "**")
+          .replace(/²/g, "**2")
+          .replace(/³/g, "**3")
+          .replace(/⁻¹/g, "**(-1)")
+          .replace(/π/g, "Math.PI")
+          .replace(/\be\b/g, "Math.E")
+          .replace(/Ans/g, `(${ansValue})`);
+
+        for (const v of ["A", "B", "C", "D", "E", "F", "X", "Y", "M"]) {
+          code = code.replace(new RegExp(`\\b${v}\\b`, "g"), "0");
+        }
+
+        code = code
+          .replace(/³√\(/g, "Math.cbrt(")
+          .replace(/√\(/g, "Math.sqrt(")
+          .replace(/sin⁻¹\(/g, "((x)=>fromRad(Math.asin(x)))(")
+          .replace(/cos⁻¹\(/g, "((x)=>fromRad(Math.acos(x)))(")
+          .replace(/tan⁻¹\(/g, "((x)=>fromRad(Math.atan(x)))(")
+          .replace(/sin\(/g, "((x)=>Math.sin(toRad(x)))(")
+          .replace(/cos\(/g, "((x)=>Math.cos(toRad(x)))(")
+          .replace(/tan\(/g, "((x)=>Math.tan(toRad(x)))(")
+          .replace(/hyp\(/g, "Math.hypot(")
+          .replace(/log\(/g, "Math.log10(")
+          .replace(/ln\(/g, "Math.log(");
+
+        code = code.replace(/(\d+(?:\.\d+)?)\s*C\s*(\d+(?:\.\d+)?)/g, "nCr($1,$2)");
+        code = code.replace(/(\d+(?:\.\d+)?)\s*P\s*(\d+(?:\.\d+)?)/g, "nPr($1,$2)");
+        code = code.replace(/(\d+)\s*!/g, "factorial($1)");
+
+        code = code.replace(/(\d|\))\s*(Math\.|\()/g, "$1*$2");
+        code = code.replace(/\)\s*\(/g, ")*(");
+
+        const result = Function(
+          "toRad", "fromRad", "factorial", "nCr", "nPr",
+          `"use strict"; return (${code});`
+        )(toRad, fromRad, factorial, nCr, nPr);
+
+        if (typeof result !== "number" || !Number.isFinite(result)) {
+          throw new Error("Math ERROR");
+        }
+
+        ansValue = result;
+        document.getElementById("resScreen").textContent = formatNumber(result);
+        justEvaluated = true;
+      } catch (_err) {
+        document.getElementById("resScreen").textContent = "Math ERROR";
+        justEvaluated = true;
+      }
+    }
+
+    buildUI();
+    updateStatus();
+  </script>
+</body>
+</html>
